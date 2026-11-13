@@ -8,6 +8,12 @@ para mirar alrededor, o arrastrar con el dedo.
 
 **Sitio en vivo:** <https://pruebadedireccion.github.io/REUNION-DE-CABALLEROS/>
 
+<p align="center">
+  <img src="docs/capturas/experiencia.png" width="240" alt="La experiencia 360 en el celular">
+  <img src="docs/capturas/portada.png" width="240" alt="Portada con el título de la prédica">
+  <img src="docs/capturas/qr.png" width="430" alt="Panel de códigos QR">
+</p>
+
 ---
 
 ## Enlaces y códigos QR

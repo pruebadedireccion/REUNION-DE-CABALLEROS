@@ -58,7 +58,7 @@ export default function LandingView({ onNavigate }: LandingViewProps) {
       />
 
       <main className="relative z-10 flex min-h-screen flex-col items-center justify-center px-6 sm:px-10">
-        <h1 className="landing-title font-display text-center text-[clamp(2.7rem,8.5vw,6.8rem)] font-semibold leading-[0.98] tracking-[-0.02em] text-[#f3efe6] [text-wrap:balance]">
+        <h1 className="landing-title font-display mx-auto w-full max-w-[18ch] text-center text-[clamp(1.9rem,7vw,6rem)] font-semibold leading-[1.04] tracking-[-0.02em] text-[#f3efe6] [text-wrap:balance] [hyphens:none]">
           {PREDICA_TITULO}
         </h1>
 

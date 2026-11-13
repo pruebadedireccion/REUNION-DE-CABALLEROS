@@ -354,15 +354,15 @@ export default function CharacterTurntable({
       const current = frames[index];
       const following = frames[nextIndex];
 
-      const figureH = h * 0.9;
+      const figureH = h * 0.8;
       const scale = figureH / current.height;
       const dw = current.width * scale;
       const dh = figureH;
       const drift = Math.sin(elapsed * 0.32) * h * 0.0032;
       const tilt = tiltRef.current.y;
       const dx = (w - dw) / 2;
-      const dy = h - dh - h * 0.03 + drift + tilt;
-      const feetY = dy + dh;
+      const dy = h * 0.92 - dh + drift + tilt;
+      const feetY = h * 0.92;
 
       // Charco de luz en el piso
       ctx.save();
@@ -409,11 +409,11 @@ export default function CharacterTurntable({
       ctx.fillRect(0, 0, w, h);
 
       // Remate inferior: el piso se funde en penumbra
-      const floorFade = ctx.createLinearGradient(0, h * 0.9, 0, h);
+      const floorFade = ctx.createLinearGradient(0, h * 0.96, 0, h);
       floorFade.addColorStop(0, 'rgba(10, 11, 14, 0)');
-      floorFade.addColorStop(1, 'rgba(10, 11, 14, 0.85)');
+      floorFade.addColorStop(1, 'rgba(10, 11, 14, 0.7)');
       ctx.fillStyle = floorFade;
-      ctx.fillRect(0, h * 0.9, w, h * 0.1);
+      ctx.fillRect(0, h * 0.96, w, h * 0.04);
     };
 
     const step = (dt: number) => {

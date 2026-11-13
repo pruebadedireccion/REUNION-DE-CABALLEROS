@@ -73,7 +73,10 @@ export default function MaestroQrView({ onNavigate }: MaestroQrViewProps) {
               <p className="mt-2 text-sm leading-relaxed text-[#b9b0a1]">
                 {UTILIDAD_EXPERIENCIA.uso}
               </p>
-              <p className="mt-4 break-all font-mono text-[0.78rem] text-[#cfc6b6]">
+              <p
+                className="mt-4 select-all truncate text-left font-mono text-[0.72rem] text-[#cfc6b6]"
+                title={UTILIDAD_EXPERIENCIA.url}
+              >
                 {UTILIDAD_EXPERIENCIA.url}
               </p>
               <div className="mt-5 flex flex-col gap-2.5 sm:flex-row">
@@ -121,12 +124,17 @@ export default function MaestroQrView({ onNavigate }: MaestroQrViewProps) {
                 </div>
               </div>
 
-              <div className="mt-4 flex justify-center rounded-xl bg-[#f8f4ea] p-2.5">
+              <div className="mt-4 flex justify-center">
                 <QrCodeBlock value={item.url} size={132} />
               </div>
 
               <p className="mt-3 flex-1 text-[0.8rem] leading-relaxed text-[#a9b0bb]">{item.uso}</p>
-              <p className="mt-2 break-all font-mono text-[0.68rem] text-[#7f8794]">{item.url}</p>
+              <p
+                className="mt-2 truncate font-mono text-[0.66rem] text-[#7f8794]"
+                title={item.url}
+              >
+                {item.url}
+              </p>
 
               <button
                 onClick={() => downloadQr(item.url, item.qr)}
