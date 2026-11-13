@@ -30,17 +30,20 @@ const FRAME_URLS = Array.from(
 );
 
 /** Fondo plano del turnaround original que hay que recortar. */
-const KEY_COLOR = { r: 178, g: 176, b: 187 };
-const KEY_LOW = 7;
-const KEY_HIGH = 26;
+const KEY_TOLERANCE = 10;
 
 const clamp = (v: number, min: number, max: number) => Math.min(max, Math.max(min, v));
 const normalize = (deg: number) => ((deg % 360) + 360) % 360;
 const shortestDelta = (deg: number) => (((deg % 360) + 540) % 360) - 180;
 
 /**
- * Convierte una vista del turnaround en un recorte con transparencia.
- * El gris de estudio se vuelve alfa 0 y la sombra del piso queda como alfa parcial.
+ * Separa al personaje del fondo de estudio.
+ *
+ * El fondo no es de un solo color (tiene degradado y una banda más oscura),
+ * así que un chroma key deja un rectángulo visible. En cambio se rellena desde
+ * los bordes siguiendo el degradado suave: el fondo es continuo y la silueta
+ * del personaje lo corta. Después se erosiona 1 px y se difumina el alfa para
+ * que no quede filo gris.
  */
 function buildMatte(img: HTMLImageElement): HTMLCanvasElement {
   const canvas = document.createElement('canvas');
@@ -52,28 +55,128 @@ function buildMatte(img: HTMLImageElement): HTMLCanvasElement {
   ctx.drawImage(img, 0, 0);
   const data = ctx.getImageData(0, 0, canvas.width, canvas.height);
   const px = data.data;
+  const w = canvas.width;
+  const h = canvas.height;
+  const total = w * h;
 
-  for (let i = 0; i < px.length; i += 4) {
-    const d = Math.max(
-      Math.abs(px[i] - KEY_COLOR.r),
-      Math.abs(px[i + 1] - KEY_COLOR.g),
-      Math.abs(px[i + 2] - KEY_COLOR.b)
-    );
+  const background = new Uint8Array(total);
+  const stack = new Int32Array(total);
+  let top = 0;
 
-    if (d <= KEY_LOW) {
-      px[i + 3] = 0;
-      continue;
+  const seed = (index: number) => {
+    if (background[index]) return;
+    background[index] = 1;
+    stack[top++] = index;
+  };
+
+  for (let x = 0; x < w; x += 1) {
+    seed(x);
+    seed((h - 1) * w + x);
+  }
+  for (let y = 0; y < h; y += 1) {
+    seed(y * w);
+    seed(y * w + w - 1);
+  }
+
+  while (top > 0) {
+    const index = stack[--top];
+    const offset = index * 4;
+    const r = px[offset];
+    const g = px[offset + 1];
+    const b = px[offset + 2];
+    const x = index % w;
+
+    if (x > 0) {
+      const n = index - 1;
+      if (!background[n]) {
+        const o = n * 4;
+        if (
+          Math.abs(px[o] - r) <= KEY_TOLERANCE &&
+          Math.abs(px[o + 1] - g) <= KEY_TOLERANCE &&
+          Math.abs(px[o + 2] - b) <= KEY_TOLERANCE
+        ) {
+          background[n] = 1;
+          stack[top++] = n;
+        }
+      }
     }
+    if (x < w - 1) {
+      const n = index + 1;
+      if (!background[n]) {
+        const o = n * 4;
+        if (
+          Math.abs(px[o] - r) <= KEY_TOLERANCE &&
+          Math.abs(px[o + 1] - g) <= KEY_TOLERANCE &&
+          Math.abs(px[o + 2] - b) <= KEY_TOLERANCE
+        ) {
+          background[n] = 1;
+          stack[top++] = n;
+        }
+      }
+    }
+    if (index >= w) {
+      const n = index - w;
+      if (!background[n]) {
+        const o = n * 4;
+        if (
+          Math.abs(px[o] - r) <= KEY_TOLERANCE &&
+          Math.abs(px[o + 1] - g) <= KEY_TOLERANCE &&
+          Math.abs(px[o + 2] - b) <= KEY_TOLERANCE
+        ) {
+          background[n] = 1;
+          stack[top++] = n;
+        }
+      }
+    }
+    if (index < total - w) {
+      const n = index + w;
+      if (!background[n]) {
+        const o = n * 4;
+        if (
+          Math.abs(px[o] - r) <= KEY_TOLERANCE &&
+          Math.abs(px[o + 1] - g) <= KEY_TOLERANCE &&
+          Math.abs(px[o + 2] - b) <= KEY_TOLERANCE
+        ) {
+          background[n] = 1;
+          stack[top++] = n;
+        }
+      }
+    }
+  }
 
-    const alpha = clamp((d - KEY_LOW) / (KEY_HIGH - KEY_LOW), 0, 1);
-    px[i + 3] = Math.round(alpha * 255);
+  // Alfa base + erosión de 1 px (mata el filo claro) + suavizado
+  const alpha = new Uint8Array(total);
+  for (let i = 0; i < total; i += 1) alpha[i] = background[i] ? 0 : 255;
 
-    // Sin esto queda un filo gris claro alrededor del personaje.
-    if (alpha < 1) {
-      const edge = 0.7 + 0.3 * alpha;
-      px[i] = Math.round(px[i] * edge);
-      px[i + 1] = Math.round(px[i + 1] * edge);
-      px[i + 2] = Math.round(px[i + 2] * edge);
+  const eroded = new Uint8Array(total);
+  for (let y = 0; y < h; y += 1) {
+    for (let x = 0; x < w; x += 1) {
+      const i = y * w + x;
+      if (!alpha[i]) continue;
+      const up = y > 0 ? alpha[i - w] : 255;
+      const down = y < h - 1 ? alpha[i + w] : 255;
+      const left = x > 0 ? alpha[i - 1] : 255;
+      const right = x < w - 1 ? alpha[i + 1] : 255;
+      eroded[i] = Math.min(up, down, left, right);
+    }
+  }
+
+  for (let y = 0; y < h; y += 1) {
+    for (let x = 0; x < w; x += 1) {
+      const i = y * w + x;
+      let sum = 0;
+      let count = 0;
+      for (let dy = -1; dy <= 1; dy += 1) {
+        const ny = y + dy;
+        if (ny < 0 || ny >= h) continue;
+        for (let dx = -1; dx <= 1; dx += 1) {
+          const nx = x + dx;
+          if (nx < 0 || nx >= w) continue;
+          sum += eroded[ny * w + nx];
+          count += 1;
+        }
+      }
+      px[i * 4 + 3] = Math.round(sum / count);
     }
   }
 
@@ -262,29 +365,30 @@ export default function CharacterTurntable({
       const feetY = dy + dh;
 
       // Charco de luz en el piso
-      const pool = ctx.createRadialGradient(w * 0.5, feetY, 0, w * 0.5, feetY, w * 0.62);
-      pool.addColorStop(0, 'rgba(196, 142, 84, 0.13)');
-      pool.addColorStop(0.55, 'rgba(150, 108, 66, 0.05)');
+      ctx.save();
+      ctx.translate(w * 0.5, feetY);
+      ctx.scale(1, 0.16);
+      const pool = ctx.createRadialGradient(0, 0, 0, 0, 0, w * 0.55);
+      pool.addColorStop(0, 'rgba(198, 144, 86, 0.16)');
+      pool.addColorStop(0.5, 'rgba(150, 108, 66, 0.06)');
       pool.addColorStop(1, 'rgba(8, 9, 11, 0)');
       ctx.fillStyle = pool;
-      ctx.save();
-      ctx.translate(0, feetY);
-      ctx.scale(1, 0.22);
-      ctx.translate(0, -feetY);
-      ctx.fillRect(0, feetY - w * 0.62, w, w * 1.24);
+      ctx.beginPath();
+      ctx.arc(0, 0, w * 0.55, 0, Math.PI * 2);
+      ctx.fill();
       ctx.restore();
 
       // Sombra de contacto
       ctx.save();
       ctx.translate(dx + dw / 2, feetY);
-      ctx.scale(1, 0.16);
-      const shadow = ctx.createRadialGradient(0, 0, 0, 0, 0, dw * 0.42);
-      shadow.addColorStop(0, 'rgba(0, 0, 0, 0.72)');
-      shadow.addColorStop(0.6, 'rgba(0, 0, 0, 0.32)');
+      ctx.scale(1, 0.14);
+      const shadow = ctx.createRadialGradient(0, 0, 0, 0, 0, dw * 0.44);
+      shadow.addColorStop(0, 'rgba(0, 0, 0, 0.78)');
+      shadow.addColorStop(0.55, 'rgba(0, 0, 0, 0.34)');
       shadow.addColorStop(1, 'rgba(0, 0, 0, 0)');
       ctx.fillStyle = shadow;
       ctx.beginPath();
-      ctx.arc(0, 0, dw * 0.42, 0, Math.PI * 2);
+      ctx.arc(0, 0, dw * 0.44, 0, Math.PI * 2);
       ctx.fill();
       ctx.restore();
 
@@ -295,6 +399,14 @@ export default function CharacterTurntable({
         ctx.drawImage(following, dx, dy, dw, dh);
         ctx.globalAlpha = 1;
       }
+
+      // Unifica el personaje con la escena (luz tenue, no foto pegada)
+      const grade = ctx.createLinearGradient(0, 0, w, h);
+      grade.addColorStop(0, 'rgba(8, 9, 12, 0.22)');
+      grade.addColorStop(0.55, 'rgba(8, 9, 12, 0.02)');
+      grade.addColorStop(1, 'rgba(12, 9, 7, 0.28)');
+      ctx.fillStyle = grade;
+      ctx.fillRect(0, 0, w, h);
 
       // Remate inferior: el piso se funde en penumbra
       const floorFade = ctx.createLinearGradient(0, h * 0.9, 0, h);
