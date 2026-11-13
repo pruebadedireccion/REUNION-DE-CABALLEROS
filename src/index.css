@@ -25,3 +25,183 @@
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
 }
+
+/* Portada: entrada suave del título y respiración del ambiente */
+@keyframes landing-title-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+    filter: blur(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+    filter: blur(0);
+  }
+}
+
+@keyframes landing-glow-breathe {
+  0%,
+  100% {
+    opacity: 0.55;
+    transform: translate(-50%, -50%) scale(0.94);
+  }
+  50% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.06);
+  }
+}
+
+@keyframes landing-line-slide {
+  0%,
+  100% {
+    opacity: 0.3;
+    transform: scaleY(0.6);
+  }
+  50% {
+    opacity: 1;
+    transform: scaleY(1);
+  }
+}
+
+.landing-title {
+  animation: landing-title-in 1.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.landing-glow {
+  animation: landing-glow-breathe 9s ease-in-out infinite;
+}
+
+.landing-line {
+  transform-origin: center;
+  animation: landing-line-slide 3.6s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .landing-title,
+  .landing-glow,
+  .landing-line {
+    animation: none;
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* Experiencia: atmósfera cinematográfica sobre el turntable           */
+/* ------------------------------------------------------------------ */
+
+@keyframes cine-beam-sway {
+  from {
+    transform: rotate(-2.4deg) translateX(-2%);
+    opacity: 0.55;
+  }
+  to {
+    transform: rotate(2.4deg) translateX(2%);
+    opacity: 1;
+  }
+}
+
+@keyframes cine-dust-drift {
+  from {
+    transform: translate3d(0, 1.5%, 0);
+    opacity: 0.35;
+  }
+  to {
+    transform: translate3d(0, -1.5%, 0);
+    opacity: 0.6;
+  }
+}
+
+@keyframes cine-grain-shift {
+  0% {
+    transform: translate3d(0, 0, 0);
+  }
+  33% {
+    transform: translate3d(-2%, 1%, 0);
+  }
+  66% {
+    transform: translate3d(1%, -1.5%, 0);
+  }
+  100% {
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+.cine-beam {
+  position: absolute;
+  inset: -18% -12%;
+  z-index: 5;
+  pointer-events: none;
+  background: linear-gradient(
+    102deg,
+    rgba(255, 214, 170, 0) 33%,
+    rgba(255, 214, 170, 0.05) 45%,
+    rgba(255, 238, 214, 0.09) 51%,
+    rgba(255, 214, 170, 0.03) 57%,
+    rgba(255, 214, 170, 0) 67%
+  );
+  filter: blur(26px);
+  transform-origin: 50% 0%;
+  mix-blend-mode: screen;
+  animation: cine-beam-sway 26s ease-in-out infinite alternate;
+}
+
+.cine-dust {
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  pointer-events: none;
+  opacity: 0.45;
+  mix-blend-mode: screen;
+  background-image:
+    radial-gradient(1.2px 1.2px at 18% 24%, rgba(255, 235, 210, 0.5), transparent 62%),
+    radial-gradient(1.4px 1.4px at 62% 16%, rgba(255, 235, 210, 0.38), transparent 62%),
+    radial-gradient(1px 1px at 82% 38%, rgba(255, 235, 210, 0.45), transparent 62%),
+    radial-gradient(1.6px 1.6px at 34% 58%, rgba(255, 235, 210, 0.3), transparent 62%),
+    radial-gradient(1px 1px at 74% 72%, rgba(255, 235, 210, 0.42), transparent 62%),
+    radial-gradient(1.3px 1.3px at 12% 82%, rgba(255, 235, 210, 0.32), transparent 62%),
+    radial-gradient(1px 1px at 48% 88%, rgba(255, 235, 210, 0.36), transparent 62%),
+    radial-gradient(1.5px 1.5px at 88% 58%, rgba(255, 235, 210, 0.26), transparent 62%);
+  background-size: 100% 100%;
+  animation: cine-dust-drift 34s ease-in-out infinite alternate;
+}
+
+.cine-vignette {
+  position: absolute;
+  inset: 0;
+  z-index: 7;
+  pointer-events: none;
+  background:
+    radial-gradient(
+      ellipse at 50% 42%,
+      transparent 30%,
+      rgba(4, 5, 7, 0.5) 76%,
+      rgba(3, 4, 6, 0.92) 100%
+    ),
+    linear-gradient(
+      to bottom,
+      rgba(4, 5, 7, 0.6) 0%,
+      transparent 20%,
+      transparent 76%,
+      rgba(4, 5, 7, 0.8) 100%
+    );
+}
+
+.cine-grain {
+  position: absolute;
+  inset: -4%;
+  z-index: 8;
+  pointer-events: none;
+  opacity: 0.07;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/></filter><rect width='180' height='180' filter='url(%23n)'/></svg>");
+  background-size: 180px 180px;
+  animation: cine-grain-shift 1.4s steps(3) infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cine-beam,
+  .cine-dust,
+  .cine-grain {
+    animation: none;
+  }
+}

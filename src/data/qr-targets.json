@@ -1,0 +1,37 @@
+{
+  "site": "https://pruebadedireccion.github.io/REUNION-DE-CABALLEROS",
+  "utilities": [
+    {
+      "id": "experiencia",
+      "path": "/ar",
+      "nombre": "La experiencia",
+      "uso": "QR principal. Pantalla del salón, afiche y mesas. Abre directo la habitación en 2.5D.",
+      "publico": "Todos los asistentes",
+      "qr": "qr-experiencia"
+    },
+    {
+      "id": "inicio",
+      "path": "/",
+      "nombre": "Portada",
+      "uso": "Entrada general al sitio. Solo muestra el título de la prédica.",
+      "publico": "Todos los asistentes",
+      "qr": "qr-inicio"
+    },
+    {
+      "id": "logistica",
+      "path": "/m",
+      "nombre": "Panel de logística",
+      "uso": "Muestra y descarga todos los QR en alta resolución.",
+      "publico": "Equipo de logística",
+      "qr": "qr-logistica"
+    },
+    {
+      "id": "predicador",
+      "path": "/p",
+      "nombre": "Vista del predicador",
+      "uso": "Guion y cierre de la prédica para la pantalla grande.",
+      "publico": "Pastor / predicador",
+      "qr": "qr-predicador"
+    }
+  ]
+}

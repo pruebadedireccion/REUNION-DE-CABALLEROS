@@ -1,6 +1,6 @@
 {
   "name": "Detrás de la apariencia",
-  "description": "Experiencia interactiva 3D y de encuentro para la Reunión de Caballeros de la Iglesia El Remanente: el peso que no se ve.",
+  "description": "Experiencia 360 para la Reunión de Caballeros de la Iglesia El Remanente: el peso que no se ve.",
   "requestFramePermissions": [],
-  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+  "majorCapabilities": []
 }

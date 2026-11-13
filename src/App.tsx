@@ -4,26 +4,42 @@
  */
 
 import { useCallback, useEffect, useState } from 'react';
-import { CaballeroRegistro, getSavedCaballero } from './data/experienceConfig';
-import FacilitatorPanelView from './views/FacilitatorPanelView';
 import LandingView from './views/LandingView';
 import MaestroQrView from './views/MaestroQrView';
 import PreacherView from './views/PreacherView';
-import RegistroView from './views/RegistroView';
 import RoomExperienceView from './views/RoomExperienceView';
 
-function normalizeRoute(rawPath: string): { path: string; isDemo: boolean } {
+/** Ruta base de Vite ('/' en local, '/REUNION-DE-CABALLEROS/' en GitHub Pages). */
+const BASE_PATH = import.meta.env.BASE_URL.replace(/\/+$/, '');
+
+interface RouteState {
+  path: string;
+  isDemo: boolean;
+}
+
+function normalizeRoute(rawPath: string): RouteState {
   const url = new URL(rawPath, window.location.origin);
-  const clean = url.pathname.replace(/\/+$/, '') || '/';
+  let pathname = url.pathname;
+
+  if (BASE_PATH && pathname.startsWith(BASE_PATH)) {
+    pathname = pathname.slice(BASE_PATH.length);
+  }
+
+  const clean = pathname.replace(/\/+$/, '') || '/';
   const isDemo = url.searchParams.get('demo') === '1';
   return { path: clean, isDemo };
+}
+
+function toBrowserPath(target: string): string {
+  if (/^https?:\/\//i.test(target)) return target;
+  const clean = target.startsWith('/') ? target : `/${target}`;
+  return `${BASE_PATH}${clean}`;
 }
 
 export default function App() {
   const [route, setRoute] = useState(() =>
     normalizeRoute(`${window.location.pathname}${window.location.search}`)
   );
-  const [caballero, setCaballero] = useState<CaballeroRegistro | null>(() => getSavedCaballero());
 
   useEffect(() => {
     const onPopState = () => {
@@ -34,31 +50,13 @@ export default function App() {
   }, []);
 
   const navigate = useCallback((target: string) => {
-    window.history.pushState({}, '', target);
+    window.history.pushState({}, '', toBrowserPath(target));
     setRoute(normalizeRoute(target));
     window.scrollTo(0, 0);
   }, []);
 
-  const refreshCaballero = useCallback(() => {
-    setCaballero(getSavedCaballero());
-  }, []);
-
-  // Gate /ar behind registration unless ?demo=1
   if (route.path === '/ar') {
-    if (!caballero && !route.isDemo) {
-      return <RegistroView onNavigate={navigate} onRegistered={refreshCaballero} />;
-    }
-    return (
-      <RoomExperienceView
-        onNavigate={navigate}
-        caballero={caballero}
-        isDemo={route.isDemo}
-      />
-    );
-  }
-
-  if (route.path === '/entrar') {
-    return <RegistroView onNavigate={navigate} onRegistered={refreshCaballero} />;
+    return <RoomExperienceView onNavigate={navigate} />;
   }
 
   if (route.path === '/m') {
@@ -69,9 +67,5 @@ export default function App() {
     return <PreacherView onNavigate={navigate} />;
   }
 
-  if (route.path === '/panel') {
-    return <FacilitatorPanelView onNavigate={navigate} onDataCleared={refreshCaballero} />;
-  }
-
-  return <LandingView onNavigate={navigate} hasRegistered={Boolean(caballero)} />;
+  return <LandingView onNavigate={navigate} />;
 }

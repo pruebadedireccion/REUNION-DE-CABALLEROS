@@ -1,3 +1,16 @@
+/**
+ * Título oficial de la prédica.
+ * Es lo único que se muestra en la portada del sitio.
+ */
+export const PREDICA_TITULO = 'Detrás de la apariencia';
+
+/**
+ * URL pública oficial (GitHub Pages).
+ * El QR de logística apunta siempre a la experiencia, nunca a localhost.
+ * Se define en `qr-targets.json` para que el sitio y los QR impresos coincidan.
+ */
+export { SITE_URL, EXPERIENCIA_URL } from './links';
+
 export type GremioId = 'mecanicos' | 'futboleros' | 'comerciantes' | 'ingenieros';
 
 export interface GremioInfo {
@@ -59,7 +72,7 @@ export const ROOM_OBJECTS: RoomObjectSpec[] = [
       'Afuera sonríe en la foto y responde «todo bien». Aquí adentro, con la camisa arrugada, ojeras hondas y la espalda vencida, sostiene lo que no le cuenta ni a su propia familia.',
     pregunta: '¿Qué parte de tu cansancio escondes cada mañana antes de salir?',
     cameraPos: [0.15, 1.38, 1.75],
-    cameraTarget: [0, 1.12, -0.2],
+    cameraTarget: [0, 1.15, -0.35],
   },
   {
     id: 'colillas',
@@ -68,8 +81,8 @@ export const ROOM_OBJECTS: RoomObjectSpec[] = [
     reflexion:
       'Cada colilla apagada en el suelo marca una noche en vela intentando calmar la cabeza. Cuando el silencio pesa demasiado, buscamos anestesia rápida en lo que nos termina desgastando más.',
     pregunta: '¿A qué recurres en silencio cuando la presión no te deja dormir?',
-    cameraPos: [0.65, 0.55, 1.15],
-    cameraTarget: [0.05, 0.08, -0.2],
+    cameraPos: [0.65, 0.55, 1.05],
+    cameraTarget: [0.05, 0.08, -0.32],
   },
   {
     id: 'zapatos',
@@ -78,8 +91,8 @@ export const ROOM_OBJECTS: RoomObjectSpec[] = [
     reflexion:
       'Ni siquiera se agachó a amarrarse los cordones. Hay días en que el hombre cumple con ir a trabajar, pero por dentro ya camina arrastrando los pasos.',
     pregunta: '¿Cuántos kilómetros llevas caminando en piloto automático?',
-    cameraPos: [-0.62, 0.42, 1.02],
-    cameraTarget: [0, 0.08, -0.2],
+    cameraPos: [-0.62, 0.42, 0.92],
+    cameraTarget: [0, 0.08, -0.35],
   },
   {
     id: 'silla',
@@ -94,7 +107,7 @@ export const ROOM_OBJECTS: RoomObjectSpec[] = [
   {
     id: 'mesa_recibos',
     titulo: 'Recibos vencidos y cuaderno cerrado',
-    etiqueta: 'Mesa de trabajo · Comerciantes',
+    etiqueta: 'Mesa de trabajo',
     gremioAfin: 'Comerciantes',
     reflexion:
       'Papeles doblados, cifras tachadas y un cuaderno que ya da miedo abrir. La carga silenciosa de ser el proveedor cuando las cuentas aprietan y el orgullo prohíbe pedir consejo.',
@@ -105,7 +118,7 @@ export const ROOM_OBJECTS: RoomObjectSpec[] = [
   {
     id: 'herramientas',
     titulo: 'Caja de herramientas oxidada',
-    etiqueta: 'Rincón derecho · Mecánicos e Ingenieros',
+    etiqueta: 'Rincón derecho',
     gremioAfin: 'Mecánicos',
     reflexion:
       'Llaves, destornilladores y grasa en las manos. Estamos entrenados para diagnosticar fallas, ajustar piezas y resolver emergencias ajenas, mientras dejamos oxidar lo que nos pasa por dentro.',
@@ -116,7 +129,7 @@ export const ROOM_OBJECTS: RoomObjectSpec[] = [
   {
     id: 'balon',
     titulo: 'Balón desinflado y trofeo viejo',
-    etiqueta: 'Rincón izquierdo · Futboleros',
+    etiqueta: 'Rincón izquierdo',
     gremioAfin: 'Futboleros',
     reflexion:
       'En la cancha sobran las bromas, los chistes y los abrazos después de un gol. Pero cuando el partido termina y el balón se desinfla, casi ningún hombre se atreve a decir: «hermano, no puedo más».',
@@ -198,13 +211,13 @@ export const CAMERA_PRESETS: CameraPreset[] = [
     id: 'frente',
     label: 'Frente al hombre',
     pos: [0.05, 1.38, 2.05],
-    target: [0, 1.02, -0.2],
+    target: [0, 1.05, -0.35],
   },
   {
     id: 'general',
     label: 'Toda la habitación',
     pos: [-1.15, 1.72, 2.18],
-    target: [0.15, 0.92, -0.3],
+    target: [0.15, 0.92, -0.45],
   },
   {
     id: 'mesa',
@@ -215,8 +228,8 @@ export const CAMERA_PRESETS: CameraPreset[] = [
   {
     id: 'piso',
     label: 'Piso y colillas',
-    pos: [0.55, 0.68, 1.25],
-    target: [0.0, 0.14, -0.2],
+    pos: [0.55, 0.68, 1.18],
+    target: [0.0, 0.14, -0.35],
   },
 ];
 

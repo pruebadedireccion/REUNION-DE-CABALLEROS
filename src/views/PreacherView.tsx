@@ -1,12 +1,13 @@
 import { ArrowLeft, BookOpen } from 'lucide-react';
 import QrCodeBlock from '../components/QrCodeBlock';
+import { SITE_URL } from '../data/experienceConfig';
 
 interface PreacherViewProps {
   onNavigate: (path: string) => void;
 }
 
 export default function PreacherView({ onNavigate }: PreacherViewProps) {
-  const preacherUrl = `${window.location.origin}/p`;
+  const preacherUrl = `${SITE_URL}/p`;
 
   return (
     <div className="min-h-screen bg-[#121418] text-[#f3efe6] flex flex-col">
