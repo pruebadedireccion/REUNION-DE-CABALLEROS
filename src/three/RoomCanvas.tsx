@@ -14,10 +14,22 @@ export interface CameraFocusRequest {
 interface RoomCanvasProps {
   onSelectObject: (objectId: string) => void;
   focusRequest: CameraFocusRequest | null;
+  gyroEnabled: boolean;
+  recenterNonce: number;
+  onGyroUnavailable?: (reason: string) => void;
 }
 
 const _desiredPos = new THREE.Vector3();
 const _desiredTarget = new THREE.Vector3();
+const _zee = new THREE.Vector3(0, 0, 1);
+const _up = new THREE.Vector3(0, 1, 0);
+const _fwd = new THREE.Vector3();
+const _euler = new THREE.Euler();
+const _q0 = new THREE.Quaternion();
+const _q1 = new THREE.Quaternion(-Math.sqrt(0.5), 0, 0, Math.sqrt(0.5));
+const _qDevice = new THREE.Quaternion();
+const _qYawCalib = new THREE.Quaternion();
+const _qTarget = new THREE.Quaternion();
 
 function detectSoftwareWebGL(): boolean {
   try {
@@ -33,10 +45,24 @@ function detectSoftwareWebGL(): boolean {
   }
 }
 
-export default function RoomCanvas({ onSelectObject, focusRequest }: RoomCanvasProps) {
+export default function RoomCanvas({
+  onSelectObject,
+  focusRequest,
+  gyroEnabled,
+  recenterNonce,
+  onGyroUnavailable,
+}: RoomCanvasProps) {
   const mountRef = useRef<HTMLDivElement | null>(null);
   const onSelectRef = useRef(onSelectObject);
   onSelectRef.current = onSelectObject;
+  const onGyroUnavailableRef = useRef(onGyroUnavailable);
+  onGyroUnavailableRef.current = onGyroUnavailable;
+
+  const gyroEnabledRef = useRef(gyroEnabled);
+  const gyroNeedsCalibRef = useRef(false);
+  const hasGyroDataRef = useRef(false);
+  const controlsRef = useRef<OrbitControls | null>(null);
+  const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
 
   const transitionRef = useRef<{
     active: boolean;
@@ -45,10 +71,42 @@ export default function RoomCanvas({ onSelectObject, focusRequest }: RoomCanvasP
   }>({
     active: false,
     pos: [0.05, 1.38, 2.05],
-    target: [0, 1.05, -0.35],
+    target: [0, 1.02, -0.2],
   });
 
   const [webglError, setWebglError] = useState(false);
+
+  useEffect(() => {
+    gyroEnabledRef.current = gyroEnabled;
+    if (gyroEnabled) {
+      gyroNeedsCalibRef.current = true;
+      transitionRef.current.active = false;
+      if (controlsRef.current) {
+        controlsRef.current.enabled = false;
+      }
+
+      if (!hasGyroDataRef.current) {
+        const timer = window.setTimeout(() => {
+          if (gyroEnabledRef.current && !hasGyroDataRef.current) {
+            onGyroUnavailableRef.current?.(
+              'Este dispositivo no detectó sensor de giroscopio. Arrastra la pantalla para mirar.'
+            );
+          }
+        }, 1200);
+        return () => window.clearTimeout(timer);
+      }
+    } else if (controlsRef.current && cameraRef.current) {
+      controlsRef.current.enabled = true;
+      controlsRef.current.target.set(0, 1.02, -0.2);
+      controlsRef.current.update();
+    }
+  }, [gyroEnabled]);
+
+  useEffect(() => {
+    if (gyroEnabled) {
+      gyroNeedsCalibRef.current = true;
+    }
+  }, [recenterNonce, gyroEnabled]);
 
   useEffect(() => {
     if (!focusRequest) return;
@@ -116,8 +174,10 @@ export default function RoomCanvas({ onSelectObject, focusRequest }: RoomCanvasP
 
     const camera = new THREE.PerspectiveCamera(56, width / height, 0.1, 30);
     camera.position.set(0.05, 1.38, 2.05);
+    cameraRef.current = camera;
 
     const controls = new OrbitControls(camera, renderer.domElement);
+    controlsRef.current = controls;
     controls.target.set(0, 1.02, -0.2);
     controls.enableDamping = !isSoftwareGl;
     controls.dampingFactor = 0.06;
@@ -128,6 +188,7 @@ export default function RoomCanvas({ onSelectObject, focusRequest }: RoomCanvasP
     controls.maxPolarAngle = Math.PI * 0.515;
     controls.rotateSpeed = 0.72;
     controls.zoomSpeed = 0.7;
+    controls.enabled = !gyroEnabledRef.current;
     controls.update();
 
     const cancelTransition = () => {
@@ -288,6 +349,55 @@ export default function RoomCanvas({ onSelectObject, focusRequest }: RoomCanvasP
     window.addEventListener('resize', handleResize);
 
     // =========================================================
+    // GYROSCOPE (DEVICE ORIENTATION) LOOK
+    // =========================================================
+    let hasGyroData = false;
+    let screenOrientRad = 0;
+
+    const updateScreenOrient = () => {
+      const angle =
+        typeof window.screen?.orientation?.angle === 'number'
+          ? window.screen.orientation.angle
+          : typeof (window as unknown as { orientation?: number }).orientation === 'number'
+          ? ((window as unknown as { orientation: number }).orientation || 0)
+          : 0;
+      screenOrientRad = THREE.MathUtils.degToRad(angle);
+    };
+    updateScreenOrient();
+    window.addEventListener('orientationchange', updateScreenOrient);
+
+    const handleDeviceOrientation = (ev: DeviceOrientationEvent) => {
+      if (ev.alpha === null || ev.beta === null || ev.gamma === null) return;
+
+      const alpha = THREE.MathUtils.degToRad(ev.alpha);
+      const beta = THREE.MathUtils.degToRad(ev.beta);
+      const gamma = THREE.MathUtils.degToRad(ev.gamma);
+
+      _euler.set(beta, alpha, -gamma, 'YXZ');
+      _qDevice.setFromEuler(_euler);
+      _qDevice.multiply(_q1);
+      _qDevice.multiply(_q0.setFromAxisAngle(_zee, -screenOrientRad));
+
+      if (gyroNeedsCalibRef.current) {
+        _fwd.set(0, 0, -1).applyQuaternion(_qDevice);
+        _fwd.y = 0;
+        if (_fwd.lengthSq() > 0.0001) {
+          _fwd.normalize();
+          const yaw0 = Math.atan2(-_fwd.x, -_fwd.z);
+          _qYawCalib.setFromAxisAngle(_up, -yaw0);
+        } else {
+          _qYawCalib.identity();
+        }
+        gyroNeedsCalibRef.current = false;
+      }
+
+      _qTarget.copy(_qYawCalib).multiply(_qDevice);
+      hasGyroData = true;
+      hasGyroDataRef.current = true;
+    };
+    window.addEventListener('deviceorientation', handleDeviceOrientation);
+
+    // =========================================================
     // ANIMATION LOOP (PACED FOR SOFTWARE WEBGL)
     // =========================================================
     const clock = new THREE.Clock();
@@ -325,33 +435,44 @@ export default function RoomCanvas({ onSelectObject, focusRequest }: RoomCanvasP
       // Drift dust motes gently
       dustPoints.rotation.y = elapsed * 0.015;
 
-      // Smooth exponential camera preset transition
-      if (transitionRef.current.active) {
-        _desiredPos.set(...transitionRef.current.pos);
-        _desiredTarget.set(...transitionRef.current.target);
+      if (gyroEnabledRef.current) {
+        // Stand at comfortable eye height inside the room facing the man
+        camera.position.x = THREE.MathUtils.damp(camera.position.x, 0, 5.0, delta);
+        camera.position.y = THREE.MathUtils.damp(camera.position.y, 1.46, 5.0, delta);
+        camera.position.z = THREE.MathUtils.damp(camera.position.z, 1.55, 5.0, delta);
 
-        camera.position.x = THREE.MathUtils.damp(camera.position.x, _desiredPos.x, 5.5, delta);
-        camera.position.y = THREE.MathUtils.damp(camera.position.y, _desiredPos.y, 5.5, delta);
-        camera.position.z = THREE.MathUtils.damp(camera.position.z, _desiredPos.z, 5.5, delta);
-
-        controls.target.x = THREE.MathUtils.damp(controls.target.x, _desiredTarget.x, 5.5, delta);
-        controls.target.y = THREE.MathUtils.damp(controls.target.y, _desiredTarget.y, 5.5, delta);
-        controls.target.z = THREE.MathUtils.damp(controls.target.z, _desiredTarget.z, 5.5, delta);
-
-        if (
-          camera.position.distanceTo(_desiredPos) < 0.025 &&
-          controls.target.distanceTo(_desiredTarget) < 0.025
-        ) {
-          transitionRef.current.active = false;
+        if (hasGyroData) {
+          camera.quaternion.slerp(_qTarget, 1 - Math.exp(-12 * delta));
         }
+      } else {
+        // Smooth exponential camera preset transition
+        if (transitionRef.current.active) {
+          _desiredPos.set(...transitionRef.current.pos);
+          _desiredTarget.set(...transitionRef.current.target);
+
+          camera.position.x = THREE.MathUtils.damp(camera.position.x, _desiredPos.x, 5.5, delta);
+          camera.position.y = THREE.MathUtils.damp(camera.position.y, _desiredPos.y, 5.5, delta);
+          camera.position.z = THREE.MathUtils.damp(camera.position.z, _desiredPos.z, 5.5, delta);
+
+          controls.target.x = THREE.MathUtils.damp(controls.target.x, _desiredTarget.x, 5.5, delta);
+          controls.target.y = THREE.MathUtils.damp(controls.target.y, _desiredTarget.y, 5.5, delta);
+          controls.target.z = THREE.MathUtils.damp(controls.target.z, _desiredTarget.z, 5.5, delta);
+
+          if (
+            camera.position.distanceTo(_desiredPos) < 0.025 &&
+            controls.target.distanceTo(_desiredTarget) < 0.025
+          ) {
+            transitionRef.current.active = false;
+          }
+        }
+
+        controls.update();
+
+        // Keep camera comfortably inside the 4.8m x 4.8m walls
+        camera.position.x = THREE.MathUtils.clamp(camera.position.x, -2.05, 2.05);
+        camera.position.z = THREE.MathUtils.clamp(camera.position.z, -2.05, 2.05);
+        camera.position.y = THREE.MathUtils.clamp(camera.position.y, 0.35, 2.35);
       }
-
-      controls.update();
-
-      // Keep camera comfortably inside the 4.8m x 4.8m walls
-      camera.position.x = THREE.MathUtils.clamp(camera.position.x, -2.05, 2.05);
-      camera.position.z = THREE.MathUtils.clamp(camera.position.z, -2.05, 2.05);
-      camera.position.y = THREE.MathUtils.clamp(camera.position.y, 0.35, 2.35);
 
       renderer.render(scene, camera);
 
@@ -369,6 +490,8 @@ export default function RoomCanvas({ onSelectObject, focusRequest }: RoomCanvasP
       cancelAnimationFrame(frameId);
       clearTimeout(frameId);
       window.removeEventListener('resize', handleResize);
+      window.removeEventListener('orientationchange', updateScreenOrient);
+      window.removeEventListener('deviceorientation', handleDeviceOrientation);
       controls.removeEventListener('start', cancelTransition);
       renderer.domElement.removeEventListener('pointerdown', handlePointerDown);
       renderer.domElement.removeEventListener('pointerup', handlePointerUp);
@@ -376,6 +499,8 @@ export default function RoomCanvas({ onSelectObject, focusRequest }: RoomCanvasP
       renderer.domElement.removeEventListener('webglcontextlost', handleContextLost);
       renderer.domElement.removeEventListener('webglcontextrestored', handleContextRestored);
 
+      controlsRef.current = null;
+      cameraRef.current = null;
       controls.dispose();
       sadMan.dispose();
       butts.dispose();

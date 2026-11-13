@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ArrowLeft,
   Check,
@@ -6,6 +6,8 @@ import {
   ChevronUp,
   Compass,
   DoorClosed,
+  RotateCcw,
+  Smartphone,
   X,
 } from 'lucide-react';
 import {
@@ -36,8 +38,59 @@ export default function RoomExperienceView({
   const [selectedObj, setSelectedObj] = useState<RoomObjectSpec | null>(null);
   const [discoveredIds, setDiscoveredIds] = useState<string[]>(() => getDiscoveredObjectIds());
   const [showClosing, setShowClosing] = useState(false);
+  const [gyroEnabled, setGyroEnabled] = useState(false);
+  const [recenterNonce, setRecenterNonce] = useState(0);
+  const [gyroNotice, setGyroNotice] = useState<string | null>(null);
 
   const discoveredSet = useMemo(() => new Set(discoveredIds), [discoveredIds]);
+
+  useEffect(() => {
+    if (!gyroNotice) return;
+    const timer = window.setTimeout(() => setGyroNotice(null), 5500);
+    return () => window.clearTimeout(timer);
+  }, [gyroNotice]);
+
+  const handleGyroUnavailable = useCallback((reason: string) => {
+    setGyroEnabled(false);
+    setGyroNotice(reason);
+  }, []);
+
+  const handleToggleGyro = async () => {
+    setGyroNotice(null);
+    if (gyroEnabled) {
+      setGyroEnabled(false);
+      return;
+    }
+
+    if (typeof window === 'undefined' || !('DeviceOrientationEvent' in window)) {
+      setGyroNotice('Este navegador no admite giroscopio. Arrastra la pantalla para mirar.');
+      return;
+    }
+
+    const DOE = window.DeviceOrientationEvent as unknown as {
+      requestPermission?: () => Promise<'granted' | 'denied'>;
+    };
+
+    if (typeof DOE.requestPermission === 'function') {
+      try {
+        const result = await DOE.requestPermission();
+        if (result !== 'granted') {
+          setGyroNotice(
+            'Permiso de movimiento denegado. Puedes seguir explorando al arrastrar la pantalla.'
+          );
+          return;
+        }
+      } catch {
+        setGyroNotice(
+          'No se pudo activar el sensor en este dispositivo. Arrastra la pantalla para mirar.'
+        );
+        return;
+      }
+    }
+
+    setSelectedObj(null);
+    setGyroEnabled(true);
+  };
 
   const inspectObject = useCallback(
     (objectId: string) => {
@@ -64,6 +117,7 @@ export default function RoomExperienceView({
   const handlePreset = (presetId: string) => {
     const preset = CAMERA_PRESETS.find((p) => p.id === presetId);
     if (!preset) return;
+    setGyroEnabled(false);
     setActivePresetId(presetId);
     setSelectedObj(null);
     setFocusRequest({
@@ -87,7 +141,13 @@ export default function RoomExperienceView({
     <div className="relative h-screen w-screen overflow-hidden bg-[#121418] text-[#f3efe6] select-none">
       {/* Isolated 3D WebGL Viewport */}
       <div className="h-full w-full">
-        <RoomCanvas onSelectObject={inspectObject} focusRequest={focusRequest} />
+        <RoomCanvas
+          onSelectObject={inspectObject}
+          focusRequest={focusRequest}
+          gyroEnabled={gyroEnabled}
+          recenterNonce={recenterNonce}
+          onGyroUnavailable={handleGyroUnavailable}
+        />
       </div>
 
       {/* Minimal Top HUD (Solid surface, NO backdrop-filter over WebGL) */}
@@ -122,6 +182,23 @@ export default function RoomExperienceView({
 
       {/* Collapsible Bottom Control Dock (Zero Viewport Occlusion) */}
       <div className="pointer-events-none fixed inset-x-0 bottom-4 z-10 flex flex-col items-center px-3">
+        {gyroNotice && (
+          <div
+            role="status"
+            className="pointer-events-auto mb-2 flex max-w-md items-center gap-2.5 rounded-xl border border-[#d99b58]/40 bg-[#1c1a17] px-3.5 py-2 text-xs text-[#f3efe6] shadow-lg"
+          >
+            <Smartphone className="h-4 w-4 shrink-0 text-[#d99b58]" />
+            <span>{gyroNotice}</span>
+            <button
+              onClick={() => setGyroNotice(null)}
+              aria-label="Cerrar aviso"
+              className="ml-1 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-[#b4bac4] hover:bg-white/10 hover:text-[#f3efe6] cursor-pointer"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        )}
+
         <button
           onClick={() => setDockExpanded((v) => !v)}
           className="pointer-events-auto mb-1.5 inline-flex min-h-[36px] items-center gap-1.5 rounded-lg border border-white/15 bg-[#16191f]/95 px-3.5 py-1.5 text-xs font-medium text-[#cfd4dc] hover:text-[#f3efe6] transition-colors shadow-md cursor-pointer"
@@ -141,15 +218,44 @@ export default function RoomExperienceView({
 
         {dockExpanded && (
           <div className="pointer-events-auto w-full max-w-[920px] rounded-2xl border border-white/12 bg-[#16191f]/95 p-3 shadow-2xl">
-            {/* Row 1: Camera angle presets */}
+            {/* Row 1: Gyroscope toggle + Camera angle presets */}
             <div className="flex flex-wrap items-center justify-between gap-2 pb-2.5 border-b border-white/10">
-              <div className="flex items-center gap-1.5 text-xs text-[#9ca3af]">
-                <Compass className="h-3.5 w-3.5 text-[#d99b58]" />
-                <span>Arrastra la pantalla para mirar · O elige un ángulo:</span>
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  onClick={handleToggleGyro}
+                  className={`inline-flex min-h-[40px] items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
+                    gyroEnabled
+                      ? 'border-[#d99b58] bg-[#d99b58] text-[#121418]'
+                      : 'border-[#d99b58]/40 bg-[#22262f] text-[#f3efe6] hover:bg-[#2c313c]'
+                  }`}
+                >
+                  <Smartphone className="h-3.5 w-3.5" />
+                  <span>{gyroEnabled ? 'Giroscopio: Activo' : 'Usar giroscopio'}</span>
+                </button>
+
+                {gyroEnabled && (
+                  <button
+                    onClick={() => setRecenterNonce((n) => n + 1)}
+                    className="inline-flex min-h-[40px] items-center gap-1.5 rounded-lg border border-white/15 bg-[#22262f] px-3 py-1.5 text-xs font-medium text-[#f3efe6] hover:bg-[#2c313c] transition-colors whitespace-nowrap shrink-0 cursor-pointer"
+                  >
+                    <RotateCcw className="h-3.5 w-3.5 text-[#d99b58]" />
+                    <span>Recentrar vista</span>
+                  </button>
+                )}
+
+                <div className="hidden sm:flex items-center gap-1.5 text-xs text-[#9ca3af]">
+                  <Compass className="h-3.5 w-3.5 text-[#d99b58]" />
+                  <span>
+                    {gyroEnabled
+                      ? 'Mueve tu celular para mirar la habitación'
+                      : 'Arrastra o elige un ángulo:'}
+                  </span>
+                </div>
               </div>
+
               <div className="flex flex-wrap items-center gap-1.5">
                 {CAMERA_PRESETS.map((preset) => {
-                  const active = activePresetId === preset.id && !selectedObj;
+                  const active = !gyroEnabled && activePresetId === preset.id && !selectedObj;
                   return (
                     <button
                       key={preset.id}
@@ -194,7 +300,7 @@ export default function RoomExperienceView({
         )}
       </div>
 
-      {/* Intro Overlay (dismissed on tap, zero joystick/gyro instructions) */}
+      {/* Intro Overlay */}
       {showIntro && (
         <div className="fixed inset-0 z-30 flex items-center justify-center bg-[#0d0f12]/90 p-5">
           <div className="w-full max-w-lg rounded-2xl border border-white/12 bg-[#171a20] p-7 shadow-2xl">
@@ -209,7 +315,10 @@ export default function RoomExperienceView({
               que calla.
             </p>
             <div className="mt-5 space-y-2 rounded-xl border border-white/10 bg-[#121418] p-4 text-sm text-[#cfd4dc]">
-              <p>1. Arrastra la pantalla con el dedo o ratón para girar la vista.</p>
+              <p>
+                1. Arrastra la pantalla para girar la vista, o activa «Usar giroscopio» para mirar
+                moviendo tu celular.
+              </p>
               <p>2. Toca al hombre o cualquier objeto en el cuarto (o usa la barra inferior).</p>
               <p>3. Cuando termines de observar, presiona «Cerrar recorrido».</p>
             </div>
