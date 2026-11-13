@@ -59,7 +59,7 @@ export const ROOM_OBJECTS: RoomObjectSpec[] = [
       'Afuera sonríe en la foto y responde «todo bien». Aquí adentro, con la camisa arrugada, ojeras hondas y la espalda vencida, sostiene lo que no le cuenta ni a su propia familia.',
     pregunta: '¿Qué parte de tu cansancio escondes cada mañana antes de salir?',
     cameraPos: [0.15, 1.38, 1.75],
-    cameraTarget: [0, 1.15, -0.35],
+    cameraTarget: [0, 1.12, -0.2],
   },
   {
     id: 'colillas',
@@ -68,8 +68,8 @@ export const ROOM_OBJECTS: RoomObjectSpec[] = [
     reflexion:
       'Cada colilla apagada en el suelo marca una noche en vela intentando calmar la cabeza. Cuando el silencio pesa demasiado, buscamos anestesia rápida en lo que nos termina desgastando más.',
     pregunta: '¿A qué recurres en silencio cuando la presión no te deja dormir?',
-    cameraPos: [0.65, 0.55, 1.05],
-    cameraTarget: [0.05, 0.08, -0.32],
+    cameraPos: [0.65, 0.55, 1.15],
+    cameraTarget: [0.05, 0.08, -0.2],
   },
   {
     id: 'zapatos',
@@ -78,8 +78,8 @@ export const ROOM_OBJECTS: RoomObjectSpec[] = [
     reflexion:
       'Ni siquiera se agachó a amarrarse los cordones. Hay días en que el hombre cumple con ir a trabajar, pero por dentro ya camina arrastrando los pasos.',
     pregunta: '¿Cuántos kilómetros llevas caminando en piloto automático?',
-    cameraPos: [-0.62, 0.42, 0.92],
-    cameraTarget: [0, 0.08, -0.35],
+    cameraPos: [-0.62, 0.42, 1.02],
+    cameraTarget: [0, 0.08, -0.2],
   },
   {
     id: 'silla',
@@ -198,13 +198,13 @@ export const CAMERA_PRESETS: CameraPreset[] = [
     id: 'frente',
     label: 'Frente al hombre',
     pos: [0.05, 1.38, 2.05],
-    target: [0, 1.05, -0.35],
+    target: [0, 1.02, -0.2],
   },
   {
     id: 'general',
     label: 'Toda la habitación',
     pos: [-1.15, 1.72, 2.18],
-    target: [0.15, 0.92, -0.45],
+    target: [0.15, 0.92, -0.3],
   },
   {
     id: 'mesa',
@@ -215,8 +215,8 @@ export const CAMERA_PRESETS: CameraPreset[] = [
   {
     id: 'piso',
     label: 'Piso y colillas',
-    pos: [0.55, 0.68, 1.18],
-    target: [0.0, 0.14, -0.35],
+    pos: [0.55, 0.68, 1.25],
+    target: [0.0, 0.14, -0.2],
   },
 ];
 

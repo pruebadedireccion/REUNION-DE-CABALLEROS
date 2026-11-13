@@ -118,12 +118,12 @@ export default function RoomCanvas({ onSelectObject, focusRequest }: RoomCanvasP
     camera.position.set(0.05, 1.38, 2.05);
 
     const controls = new OrbitControls(camera, renderer.domElement);
-    controls.target.set(0, 1.05, -0.35);
+    controls.target.set(0, 1.02, -0.2);
     controls.enableDamping = !isSoftwareGl;
     controls.dampingFactor = 0.06;
     controls.enablePan = false;
-    controls.minDistance = 0.68;
-    controls.maxDistance = 2.55;
+    controls.minDistance = 0.72;
+    controls.maxDistance = 2.35;
     controls.minPolarAngle = 0.42;
     controls.maxPolarAngle = Math.PI * 0.515;
     controls.rotateSpeed = 0.72;
@@ -138,13 +138,13 @@ export default function RoomCanvas({ onSelectObject, focusRequest }: RoomCanvasP
     // =========================================================
     // WARM MELANCHOLIC LIGHTING (NO FLICKER, NO HORROR)
     // =========================================================
-    const hemiLight = new THREE.HemisphereLight(0x8899b2, 0x3b3129, 0.82);
+    const hemiLight = new THREE.HemisphereLight(0x8fa2bd, 0x3b3129, 0.96);
     scene.add(hemiLight);
 
     // Cool twilight directional key from window
     const windowLight = new THREE.DirectionalLight(0x8fa9cc, 1.2);
     windowLight.position.set(-0.65, 2.1, -2.05);
-    windowLight.target.position.set(0, 0.9, -0.25);
+    windowLight.target.position.set(0, 0.9, -0.2);
     scene.add(windowLight.target);
     windowLight.castShadow = !isSoftwareGl;
     windowLight.shadow.mapSize.width = 1024;
@@ -169,9 +169,9 @@ export default function RoomCanvas({ onSelectObject, focusRequest }: RoomCanvasP
     scene.add(lampLight);
 
     // Gentle front fill so the man's sad face, ojeras, beard & shirt are always legible
-    const frontFill = new THREE.DirectionalLight(0xdcc3a6, 0.65);
+    const frontFill = new THREE.DirectionalLight(0xdcc3a6, 0.78);
     frontFill.position.set(0.5, 1.65, 2.1);
-    frontFill.target.position.set(0, 1.15, -0.35);
+    frontFill.target.position.set(0, 1.15, -0.2);
     scene.add(frontFill.target);
     scene.add(frontFill);
 
@@ -180,10 +180,10 @@ export default function RoomCanvas({ onSelectObject, focusRequest }: RoomCanvasP
     // =========================================================
     const anisotropy = renderer.capabilities.getMaxAnisotropy();
     const sadMan = buildSadMan(anisotropy);
-    sadMan.group.position.set(0, 0, -0.35);
+    sadMan.group.position.set(0, 0, -0.2);
     scene.add(sadMan.group);
 
-    const butts = buildCigaretteButtsCluster(0, -0.35, 34);
+    const butts = buildCigaretteButtsCluster(0, -0.2, 34);
     scene.add(butts.group);
 
     const roomObjects = buildRoomObjects(anisotropy);
@@ -319,7 +319,7 @@ export default function RoomCanvas({ onSelectObject, focusRequest }: RoomCanvasP
       const delta = Math.min(clock.getDelta(), 0.1);
       const elapsed = clock.getElapsedTime();
 
-      sadMan.update(elapsed);
+      sadMan.update(elapsed, camera);
       roomObjects.update(elapsed);
 
       // Drift dust motes gently
